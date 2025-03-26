@@ -20,6 +20,12 @@ class Plugin
     private $transient_prefix = '_transient_inline_svg_';
     private $transient_expiration = 24 * HOUR_IN_SECONDS;
     private $home_url_host;
+    private $attributes_to_replace = [
+        'src'
+    ];
+    private $attributes_to_skip = [
+        'alt'
+    ];
 
     public function __construct()
     {
@@ -42,7 +48,17 @@ class Plugin
         preg_match_all('/(class|style|alt|title|width|height|id|data-[^=]+|aria-[^=]+|src)="([^"]*)"/i', $image_html, $attr_matches, PREG_SET_ORDER);
 
         foreach ($attr_matches as [$full_match, $key, $value]) {
-            $key = $key === 'src' ? 'data-src' : $key;
+            if ($key === 'alt') {
+                $svg_html = preg_replace('/<svg([^>]*)>/', '<svg$1><title>' . $value . '</title>', $svg_html, 1);
+            }
+
+            if (in_array($key, $this->attributes_to_skip)) {
+                continue;
+            }
+
+            if (in_array($key, $this->attributes_to_replace)) {
+                $key = 'data-' . $key;
+            }
             $value = esc_attr($value);
 
             if (preg_match('/<svg[^>]*\b' . preg_quote($key) . '="[^"]*"/i', $svg_html)) {
